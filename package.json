@@ -1,0 +1,21 @@
+{
+  "name": "obsidian-quiz-block",
+  "version": "0.1.0",
+  "description": "Create beautiful, interactive quizzes inside Obsidian notes using code blocks.",
+  "main": "main.js",
+  "author": {
+    "name": "SSKhekhaliya",
+    "url": "https://www.sskhekhaliya.in/"
+  },
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "esbuild": "^0.24.0",
+    "obsidian": "latest",
+    "typescript": "^5.5.4"
+  }
+}

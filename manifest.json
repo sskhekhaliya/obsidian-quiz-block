@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-quiz-block",
+  "name": "Quiz Block",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Create beautiful, interactive quizzes inside your notes using ```qblock code blocks.",
+  "author": "SSKhekhaliya",
+  "authorUrl": "https://www.sskhekhaliya.in/",
+  "fundingUrl": "https://buymeacoffee.com/sskhekhaliya",
+  "isDesktopOnly": false
+}

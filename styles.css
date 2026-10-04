@@ -1,0 +1,572 @@
+/* Quiz Block - Obsidian Plugin Styles */
+
+.qblock-container {
+  --qb-surface: var(--background-secondary);
+  --qb-surface-alt: var(--background-primary-alt);
+  --qb-surface-hover: var(--background-modifier-hover);
+  --qb-border: var(--background-modifier-border);
+  --qb-accent: var(--interactive-accent);
+  --qb-accent-hover: var(--interactive-accent-hover);
+  --qb-accent-soft: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  --qb-correct-bg: color-mix(in srgb, var(--color-green, #34a853) 14%, var(--background-primary));
+  --qb-correct-border: var(--color-green, #34a853);
+  --qb-correct-text: var(--color-green, #137333);
+  --qb-incorrect-bg: color-mix(in srgb, var(--color-red, #ea4335) 14%, var(--background-primary));
+  --qb-incorrect-border: var(--color-red, #ea4335);
+  --qb-incorrect-text: var(--color-red, #c5221f);
+
+  background: var(--background-primary);
+  border: 1px solid var(--qb-border);
+  border-radius: 20px;
+  box-sizing: border-box;
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  margin: 1.5em 0;
+  max-width: 760px;
+  overflow: hidden;
+  padding: 24px;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header: Just Title */
+.qblock-header {
+  border-bottom: 1px solid var(--qb-border);
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+}
+
+/* Thin clean font for title */
+.qblock-title {
+  color: var(--text-normal);
+  font-size: 1.25em;
+  font-weight: 350;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Question Area */
+.qblock-question-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.qblock-question-top {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.qblock-counter {
+  color: var(--text-muted);
+  font-size: 0.82em;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.qblock-question-text {
+  color: var(--text-normal);
+  font-size: 1.05em;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+/* Options: Strictly no stroke/border */
+.qblock-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.qblock-option {
+  align-items: center;
+  background: var(--qb-surface);
+  border: none !important;
+  border-radius: 14px;
+  box-shadow: none !important;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  outline: none !important;
+  padding: 13px 16px;
+  position: relative;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.qblock-option:hover {
+  background: var(--qb-surface-hover);
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-option.is-selected {
+  background: var(--qb-accent-soft) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-option.is-selected:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-option.is-correct,
+.qblock-option.is-correct:hover {
+  background: var(--qb-correct-bg) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-option.is-incorrect,
+.qblock-option.is-incorrect:hover {
+  background: var(--qb-incorrect-bg) !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-option-row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.qblock-option-prefix {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 0.86em;
+  font-weight: 600;
+  min-width: 18px;
+}
+
+.qblock-checkbox {
+  align-items: center;
+  background: var(--background-primary);
+  border: 1.5px solid var(--text-muted);
+  border-radius: 5px;
+  box-sizing: border-box;
+  display: flex;
+  flex-shrink: 0;
+  height: 18px;
+  justify-content: center;
+  transition: all 0.15s ease;
+  width: 18px;
+}
+
+.qblock-option.is-selected .qblock-checkbox {
+  background: var(--qb-accent);
+  border-color: var(--qb-accent);
+  color: white;
+}
+
+.qblock-option-text {
+  color: var(--text-normal);
+  flex: 1;
+  font-size: 0.92em;
+  line-height: 1.4;
+}
+
+.qblock-user-answer-badge {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 0.76em;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.qblock-status-icon {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
+
+.qblock-status-icon.is-correct {
+  color: var(--qb-correct-text);
+}
+
+.qblock-status-icon.is-incorrect {
+  color: var(--qb-incorrect-text);
+}
+
+/* Controls Bar */
+.qblock-controls {
+  align-items: center;
+  border-top: 1px solid var(--qb-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding-top: 16px;
+}
+
+.qblock-controls-left,
+.qblock-controls-right {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* All buttons: Remove shadows completely */
+.qblock-container button {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Hint Button: Strictly no outline/border, transparent with hover */
+.qblock-hint-btn,
+.qblock-hint-btn:focus,
+.qblock-hint-btn:focus-visible,
+.qblock-hint-btn:active {
+  align-items: center;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 9999px;
+  box-shadow: none !important;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82em;
+  font-weight: 500;
+  gap: 6px;
+  line-height: 1;
+  outline: none !important;
+  padding: 8px 14px;
+  transition: all 0.15s ease;
+}
+
+.qblock-hint-btn:hover {
+  background: var(--qb-surface-hover) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--qb-accent);
+  outline: none !important;
+}
+
+/* Previous / Secondary Button: Transparent with thin border, NO shadow */
+.qblock-btn {
+  align-items: center;
+  background: transparent !important;
+  border: 1px solid var(--qb-border) !important;
+  border-radius: 9999px;
+  box-shadow: none !important;
+  color: var(--text-normal) !important;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82em;
+  font-weight: 500;
+  gap: 6px;
+  line-height: 1;
+  outline: none !important;
+  padding: 8px 20px;
+  transition: all 0.15s ease;
+}
+
+.qblock-btn:hover:not(:disabled) {
+  background: var(--qb-surface-hover) !important;
+  border-color: color-mix(in srgb, var(--qb-border) 50%, var(--qb-accent)) !important;
+  box-shadow: none !important;
+}
+
+.qblock-btn:focus,
+.qblock-btn:focus-visible,
+.qblock-btn:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-btn:disabled {
+  background: transparent !important;
+  border: 1px solid var(--qb-border) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* Primary Button (Next / Submit): Always Filled, NO shadow */
+.qblock-btn.mod-cta {
+  background: var(--qb-accent) !important;
+  border: 1px solid var(--qb-accent) !important;
+  box-shadow: none !important;
+  color: var(--text-on-accent, white) !important;
+}
+
+.qblock-btn.mod-cta:hover:not(:disabled) {
+  background: var(--qb-accent-hover) !important;
+  border-color: var(--qb-accent-hover) !important;
+  box-shadow: none !important;
+}
+
+.qblock-btn.mod-cta:focus,
+.qblock-btn.mod-cta:focus-visible,
+.qblock-btn.mod-cta:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.qblock-btn.mod-cta:disabled {
+  background: var(--qb-accent) !important;
+  border: 1px solid var(--qb-accent) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Below Controls: Hint Card & Explanation Area */
+.qblock-below-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.qblock-hint-card {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--qb-accent) 8%, var(--background-primary));
+  border: 1px solid color-mix(in srgb, var(--qb-accent) 25%, transparent);
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  transition: all 0.2s ease;
+}
+
+.qblock-explanation-card {
+  align-items: flex-start;
+  background: var(--qb-surface);
+  border: 1px solid var(--qb-border);
+  border-radius: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  transition: all 0.2s ease;
+}
+
+.qblock-card-icon {
+  color: var(--qb-accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.qblock-card-text {
+  color: var(--text-normal);
+  font-size: 0.86em;
+  line-height: 1.45;
+}
+
+/* Score Summary View */
+.qblock-summary-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qblock-score-card {
+  background: color-mix(in srgb, var(--qb-accent) 6%, var(--background-secondary));
+  border: 1px solid color-mix(in srgb, var(--qb-accent) 20%, var(--qb-border));
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.qblock-score-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.qblock-score-label {
+  color: var(--text-muted);
+  font-size: 0.8em;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.qblock-score-digits {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.qblock-score-big {
+  color: var(--text-normal);
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.qblock-score-percent {
+  color: var(--text-muted);
+  font-size: 1.15em;
+  font-weight: 500;
+}
+
+/* Segmented Progress Bar */
+.qblock-segmented-bar {
+  background: var(--background-modifier-border);
+  border-radius: 9999px;
+  display: flex;
+  height: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.qblock-progress-got {
+  background: var(--qb-accent);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.qblock-progress-missed {
+  background: color-mix(in srgb, var(--qb-accent) 40%, var(--background-modifier-border));
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.qblock-progress-skipped {
+  background: transparent;
+  flex: 1;
+  height: 100%;
+}
+
+/* Progress Legend */
+.qblock-legend {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.qblock-legend-dot {
+  border-radius: 9999px;
+  display: inline-block;
+  height: 9px;
+  width: 9px;
+}
+
+.qblock-legend-item {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  font-size: 0.78em;
+  gap: 6px;
+}
+
+/* Missed Questions List */
+.qblock-missed-section {
+  border-top: 1px solid var(--qb-border);
+  padding-top: 16px;
+}
+
+.qblock-missed-title {
+  color: var(--text-normal);
+  font-size: 0.82em;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.qblock-missed-item {
+  align-items: flex-start;
+  border-radius: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.86em;
+  gap: 8px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  transition: all 0.15s ease;
+}
+
+.qblock-missed-item:hover {
+  background: var(--qb-surface-hover);
+  color: var(--qb-accent);
+}
+
+.qblock-missed-num {
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+/* Action Cards */
+.qblock-action-card {
+  align-items: center;
+  background: var(--background-primary);
+  border: 1px solid var(--qb-border);
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 18px;
+  transition: border-color 0.15s ease;
+}
+
+.qblock-action-card:hover {
+  border-color: color-mix(in srgb, var(--qb-border) 60%, var(--qb-accent));
+}
+
+.qblock-action-label {
+  color: var(--text-normal);
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+/* Error Display */
+.qblock-error {
+  background: color-mix(in srgb, var(--color-red, #ea4335) 8%, var(--background-primary));
+  border: 1px solid color-mix(in srgb, var(--color-red, #ea4335) 30%, transparent);
+  border-radius: 14px;
+  color: var(--text-normal);
+  padding: 16px 20px;
+}
+
+.qblock-error-title {
+  color: var(--color-red, #ea4335);
+  font-size: 0.95em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.qblock-error-detail {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 0.82em;
+  white-space: pre-wrap;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 580px) {
+  .qblock-container {
+    padding: 16px;
+  }
+  .qblock-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .qblock-controls-left,
+  .qblock-controls-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .qblock-controls-right button {
+    flex: 1;
+    justify-content: center;
+  }
+}
