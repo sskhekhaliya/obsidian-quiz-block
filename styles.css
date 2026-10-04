@@ -9,10 +9,8 @@
   --qb-accent-hover: var(--interactive-accent-hover);
   --qb-accent-soft: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
   --qb-correct-bg: color-mix(in srgb, var(--color-green, #34a853) 14%, var(--background-primary));
-  --qb-correct-border: var(--color-green, #34a853);
   --qb-correct-text: var(--color-green, #137333);
   --qb-incorrect-bg: color-mix(in srgb, var(--color-red, #ea4335) 14%, var(--background-primary));
-  --qb-incorrect-border: var(--color-red, #ea4335);
   --qb-incorrect-text: var(--color-red, #c5221f);
 
   background: var(--background-primary);

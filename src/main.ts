@@ -59,6 +59,11 @@ interface ParsedQuiz {
   questions: QuizQuestion[];
 }
 
+interface TempChoice {
+  text: string;
+  isInlineCorrect: boolean;
+}
+
 export default class QuizBlockPlugin extends Plugin {
   settings: QuizSettings = DEFAULT_SETTINGS;
 
@@ -181,11 +186,6 @@ export default class QuizBlockPlugin extends Plugin {
       const correctIndices: Set<number> = new Set();
 
       // 1. Extract choice texts and check inline markers (*, [x], (correct))
-      interface TempChoice {
-        text: string;
-        isInlineCorrect: boolean;
-      }
-
       const intermediateChoices: TempChoice[] = rawChoices.map((c) => {
         let text = "";
         let isInlineCorrect = false;
