@@ -139,6 +139,7 @@ questions:
 ### 4. Quick Tips & Flexibility
 
 - **Answer by Letter or Text**: You can write letters (`[A]`, `[A, B]`), text (`["Saturn"]`), or numbers (`[1]`).
+- **Zero-Indentation JSON / Python Dict Support**: If you don't want to worry about indentation, you can write your quiz as a JSON / Python dictionary with `{}` and `[]`. Indentation does not matter!
 - **Inline Asterisk `*` (Optional)**: If you prefer, you can also mark correct answers inline directly in the list (e.g., `- "* Saturn"`).
 - **No extra typing**: No need to write `text:`, `correct: false`, or `type: multi`. Quiz Block automatically detects single vs multiple choice based on your answers!
 
