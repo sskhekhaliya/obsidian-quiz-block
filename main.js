@@ -61,7 +61,7 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
     const container = el.createDiv("qblock-container");
     let rawData = null;
     try {
-      rawData = (0, import_obsidian.parseYaml)(sourceText);
+      rawData = this.parseSource(sourceText);
     } catch (e) {
       this.renderError(container, "Could not parse Quiz Block", String(e));
       return;
@@ -78,7 +78,7 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
       }
       try {
         const fileContent = await this.app.vault.cachedRead(resolved);
-        rawData = (0, import_obsidian.parseYaml)(fileContent);
+        rawData = this.parseSource(fileContent);
       } catch (err) {
         this.renderError(container, `Failed to read ${resolved.path}`, String(err));
         return;
@@ -91,6 +91,19 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
     }
     const renderer = new QuizRenderer(container, parsed, this.settings);
     renderer.render();
+  }
+  parseSource(sourceText) {
+    try {
+      return (0, import_obsidian.parseYaml)(sourceText);
+    } catch (yamlErr) {
+      const cleaned = sourceText.replace(/:\s*True\b/g, ": true").replace(/:\s*False\b/g, ": false").replace(/:\s*None\b/g, ": null");
+      const fn = new Function('"use strict"; return (' + cleaned + ");");
+      const evaluated = fn();
+      if (evaluated && typeof evaluated === "object") {
+        return evaluated;
+      }
+      throw yamlErr;
+    }
   }
   resolveVaultFile(filePath, sourcePath) {
     const clean = filePath.replace(/^\[\[/, "").replace(/\]\]$/, "").trim();

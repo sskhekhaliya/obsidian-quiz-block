@@ -105,7 +105,7 @@ export default class QuizBlockPlugin extends Plugin {
 
     let rawData: RawQuiz | null = null;
     try {
-      rawData = parseYaml(sourceText) as RawQuiz;
+      rawData = this.parseSource(sourceText);
     } catch (e) {
       this.renderError(container, "Could not parse Quiz Block", String(e));
       return;
@@ -125,7 +125,7 @@ export default class QuizBlockPlugin extends Plugin {
       }
       try {
         const fileContent = await this.app.vault.cachedRead(resolved);
-        rawData = parseYaml(fileContent) as RawQuiz;
+        rawData = this.parseSource(fileContent);
       } catch (err) {
         this.renderError(container, `Failed to read ${resolved.path}`, String(err));
         return;
@@ -140,6 +140,24 @@ export default class QuizBlockPlugin extends Plugin {
 
     const renderer = new QuizRenderer(container, parsed, this.settings);
     renderer.render();
+  }
+
+  parseSource(sourceText: string): RawQuiz {
+    try {
+      return parseYaml(sourceText) as RawQuiz;
+    } catch (yamlErr) {
+      // Fallback: Support Python dictionary and relaxed JSON/JS object syntax
+      const cleaned = sourceText
+        .replace(/:\s*True\b/g, ": true")
+        .replace(/:\s*False\b/g, ": false")
+        .replace(/:\s*None\b/g, ": null");
+      const fn = new Function('"use strict"; return (' + cleaned + ');');
+      const evaluated = fn();
+      if (evaluated && typeof evaluated === "object") {
+        return evaluated as RawQuiz;
+      }
+      throw yamlErr;
+    }
   }
 
   resolveVaultFile(filePath: string, sourcePath: string): TFile | null {
