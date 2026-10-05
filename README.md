@@ -145,19 +145,25 @@ If you don't want to worry about YAML spacing or indentation (especially when ty
 ````markdown
 ```qblock
 {
-  'title': 'Computer Science Basics',
+  'title': 'Computer Science & Math',
   'questions': [
     {
       'question': 'What is the time complexity of binary search?',
       'hint': 'The search space is cut in half on each step.',
       'explanation': 'Binary search runs in O(log n) time.',
       'choices': ['O(1)', 'O(log n)', 'O(n)', 'O(n^2)'],
-      'answer': ['B'],
+      'answer': ['B'],   # Letter B (or index 1)
+    },
+    {
+      'question': 'Which of the following is an odd prime number?',
+      'choices': [1, 3, 4, 6],   # Raw numbers directly supported in choices!
+      'answer': [1],             # 0-based index 1 = Option B (value 3)
+      'explanation': '3 is both odd and prime.',
     },
     {
       'question': 'Which of the following are linear data structures?',
       'choices': ['Array', 'Linked List', 'Binary Tree', 'Queue'],
-      'answer': ['A', 'B', 'D'],
+      'answer': ['A', 'B', 'D'], # Multi-select (or [0, 1, 3])
     }
   ]
 }
