@@ -9,14 +9,16 @@ A modern, interactive quiz plugin for **[Obsidian](https://obsidian.md)** develo
 ## ✨ Features
 
 - **🎯 Simple & Clean Syntax**:
-  - Write quizzes in clean YAML or JSON inside ```` ```qblock ```` code blocks.
-  - Minimal syntax: just `title` and `questions`.
-  - Optional single explanation per question displayed right after answering.
+  - Write quizzes in clean YAML, JSON, or Python dictionary format inside ```` ```qblock ```` code fences.
+  - Minimal syntax: just `title`, `questions`, and `answer: [...]`.
+  - Zero-indentation headaches: support for bracket-based syntax (`{}` and `[]`) means you never have to worry about spacing errors.
 - **🎨 Adaptive Theme Aesthetic**:
-  - Thin, clean title typography, dynamic native Obsidian accent colors (`var(--interactive-accent)`), rounded card containers, borderless hint button, and smooth transitions designed to automatically match any Obsidian Light or Dark theme.
+  - Thin, clean title typography, dynamic native Obsidian accent colors (`var(--interactive-accent)`), stroke-free options, rounded card containers, borderless hint button, and smooth transitions designed to automatically match any Obsidian Light or Dark theme.
 - **🔘 Single-Choice & Multi-Select Questions**:
   - **Single-choice**: Radio-style selection with option prefixes (`A.`, `B.`, `C.`) and instant evaluation.
-  - **Multi-select**: Modern checkboxes with a "Check answer" validation button.
+  - **Multi-select**: Modern checkboxes with a dynamic filled "Submit" button that auto-converts to "Next" upon evaluation.
+- **📄 Multi-Line & Code Block Questions**:
+  - Full multiline support (`white-space: pre-wrap`) for questions, choices, hints, and explanations—perfect for code snippets, paragraphs, and scenarios.
 - **💡 Hints & Explanations**:
   - **Hint Drawer**: Borderless hover-activated hint button that opens the hint card below the controls.
   - **Question Explanation**: Clean reasoning card displayed directly below the controls when answered.
@@ -29,7 +31,7 @@ A modern, interactive quiz plugin for **[Obsidian](https://obsidian.md)** develo
 - **🗂️ External File Support**:
   - Keep your quizzes organized! Reference external vault files with `file: "Quizzes/Grammar.yaml"` or `file: "[[Grammar]]"`.
 - **📱 Cross-Platform**:
-  - Works on both Desktop and Mobile Obsidian.
+  - Works on both Desktop and Mobile Obsidian (iOS & Android).
 
 ---
 
@@ -136,10 +138,80 @@ questions:
 
 ---
 
-### 4. Quick Tips & Flexibility
+### 4. Zero-Indentation Python Dictionary & JSON Syntax
+
+If you don't want to worry about YAML spacing or indentation (especially when typing on a mobile keyboard or copy-pasting from ChatGPT), you can use Python dictionary or JSON syntax with `{}` and `[]`. Indentation does not matter:
+
+````markdown
+```qblock
+{
+  'title': 'Computer Science Basics',
+  'questions': [
+    {
+      'question': 'What is the time complexity of binary search?',
+      'hint': 'The search space is cut in half on each step.',
+      'explanation': 'Binary search runs in O(log n) time.',
+      'choices': ['O(1)', 'O(log n)', 'O(n)', 'O(n^2)'],
+      'answer': ['B'],
+    },
+    {
+      'question': 'Which of the following are linear data structures?',
+      'choices': ['Array', 'Linked List', 'Binary Tree', 'Queue'],
+      'answer': ['A', 'B', 'D'],
+    }
+  ]
+}
+```
+````
+
+---
+
+### 5. Multi-Line Questions & Code Snippets
+
+To enter questions with code blocks, multiple paragraphs, or scenarios, simply use the YAML pipe operator `|`:
+
+````markdown
+```qblock
+title: "Python Code Analysis"
+questions:
+  - question: |
+      Consider the following Python snippet:
+
+      def mystery(x, y):
+          return x * y if x > y else x + y
+
+      What will mystery(3, 7) output?
+    hint: "Notice the condition x > y."
+    explanation: |
+      Since 3 is not greater than 7 (3 > 7 is False),
+      it executes the else branch: 3 + 7 = 10.
+    choices:
+      - "21"
+      - "10"
+      - "4"
+      - "Error"
+    answer: [B]
+
+  - question: |
+      Given this list comprehension:
+      [x * 2 for x in [1, 2, 3] if x % 2 != 0]
+
+      What is the resulting list?
+    choices:
+      - "[2]"
+      - "[2, 6]"
+      - "[4]"
+      - "[1, 3]"
+    answer: [B]
+```
+````
+
+---
+
+### 6. Quick Tips & Flexibility
 
 - **Answer by Letter or Text**: You can write letters (`[A]`, `[A, B]`), text (`["Saturn"]`), or numbers (`[1]`).
-- **Zero-Indentation JSON / Python Dict Support**: If you don't want to worry about indentation, you can write your quiz as a JSON / Python dictionary with `{}` and `[]`. Indentation does not matter!
+- **Zero-Indentation Freedom**: Choose YAML or Python dictionary / JSON syntax—both work seamlessly.
 - **Inline Asterisk `*` (Optional)**: If you prefer, you can also mark correct answers inline directly in the list (e.g., `- "* Saturn"`).
 - **No extra typing**: No need to write `text:`, `correct: false`, or `type: multi`. Quiz Block automatically detects single vs multiple choice based on your answers!
 
