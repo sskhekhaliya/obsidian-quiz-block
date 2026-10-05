@@ -3,11 +3,13 @@ import { App, MarkdownPostProcessorContext, Plugin, PluginSettingTab, Setting, T
 interface QuizSettings {
   shuffleByDefault: boolean;
   instantFeedback: boolean;
+  oneBasedIndexing: boolean;
 }
 
 const DEFAULT_SETTINGS: QuizSettings = {
   shuffleByDefault: false,
-  instantFeedback: true
+  instantFeedback: true,
+  oneBasedIndexing: false
 };
 
 interface RawChoice {
@@ -268,16 +270,7 @@ export default class QuizBlockPlugin extends Plugin {
           return;
         }
 
-        // 1. Direct text match with a choice (case-insensitive)
-        const matchedIdx = intermediateChoices.findIndex(
-          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (matchedIdx !== -1) {
-          correctIndices.add(matchedIdx);
-          return;
-        }
-
-        // 2. Check if it's a letter (A, B, C, D, etc.)
+        // 1. Check if it's a letter (A, B, C, D, etc.)
         const letterMatch = trimmed.match(/^([A-Ha-h])\.?$/);
         if (letterMatch) {
           const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65; // A -> 0, B -> 1
@@ -287,13 +280,14 @@ export default class QuizBlockPlugin extends Plugin {
           }
         }
 
-        // 3. Check if numeric value or numeric string (1, 2, "1", "2")
+        // 2. Strict index-based matching (No value-based matching)
+        // Default: 0-based indexing (0 = Option A, 1 = Option B, 2 = Option C...)
+        // When oneBasedIndexing setting is enabled: 1-based (1 = Option A, 2 = Option B...)
         const numVal = typeof val === "number" ? val : parseInt(trimmed, 10);
         if (!isNaN(numVal) && (typeof val === "number" || String(numVal) === trimmed)) {
-          if (numVal === 0) {
-            correctIndices.add(0);
-          } else if (numVal >= 1 && numVal <= intermediateChoices.length) {
-            correctIndices.add(numVal - 1);
+          const targetIndex = this.settings.oneBasedIndexing ? numVal - 1 : numVal;
+          if (targetIndex >= 0 && targetIndex < intermediateChoices.length) {
+            correctIndices.add(targetIndex);
           }
         }
       };
@@ -742,6 +736,18 @@ class QuizBlockSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.instantFeedback)
           .onChange(async (val) => {
             this.plugin.settings.instantFeedback = val;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("1-based indexing for numerical answers")
+      .setDesc("When enabled, numerical answers start at 1 (1 = Option A, 2 = Option B, etc.). When disabled (default), numerical answers start at 0 (0 = Option A, 1 = Option B, etc.), matching Python and JavaScript.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.oneBasedIndexing)
+          .onChange(async (val) => {
+            this.plugin.settings.oneBasedIndexing = val;
             await this.plugin.saveSettings();
           })
       );

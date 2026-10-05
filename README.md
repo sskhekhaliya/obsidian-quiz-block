@@ -210,7 +210,8 @@ questions:
 
 ### 6. Quick Tips & Flexibility
 
-- **Answer by Letter or Text**: You can write letters (`[A]`, `[A, B]`), text (`["Saturn"]`), or numbers (`[1]`).
+- **Index or Letter Based Answers**: Specify answers by letter (`[A]`, `[A, B]`) or by index (`[0]`, `[0, 1]`). Starting at `0` matches Python, JavaScript, and standard programming conventions.
+- **Zero Ambiguity with Numbers**: Answers are determined strictly by index or letter—never by option value. This guarantees that options containing numbers (such as `[1, 3, 2, 5]`) are completely unambiguous and predictable.
 - **Zero-Indentation Freedom**: Choose YAML or Python dictionary / JSON syntax—both work seamlessly.
 - **Inline Asterisk `*` (Optional)**: If you prefer, you can also mark correct answers inline directly in the list (e.g., `- "* Saturn"`).
 - **No extra typing**: No need to write `text:`, `correct: false`, or `type: multi`. Quiz Block automatically detects single vs multiple choice based on your answers!
@@ -227,6 +228,7 @@ questions:
 
 - **Shuffle questions by default**: Automatically randomizes question order when loading a quiz block.
 - **Instant feedback**: Immediately evaluate single-choice questions upon clicking an option.
+- **1-based indexing for numerical answers**: When enabled, numerical answers start at 1 (`1` = Option A, `2` = Option B, etc.). When disabled (default), numerical answers start at 0 (`0` = Option A, `1` = Option B, etc.), matching Python and JavaScript conventions.
 
 ---
 

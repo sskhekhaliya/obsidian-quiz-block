@@ -26,7 +26,8 @@ module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var DEFAULT_SETTINGS = {
   shuffleByDefault: false,
-  instantFeedback: true
+  instantFeedback: true,
+  oneBasedIndexing: false
 };
 var QuizBlockPlugin = class extends import_obsidian.Plugin {
   constructor() {
@@ -186,13 +187,6 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
           trimmed.split(",").forEach((sub) => resolveToken(sub.trim()));
           return;
         }
-        const matchedIdx = intermediateChoices.findIndex(
-          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (matchedIdx !== -1) {
-          correctIndices.add(matchedIdx);
-          return;
-        }
         const letterMatch = trimmed.match(/^([A-Ha-h])\.?$/);
         if (letterMatch) {
           const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
@@ -203,10 +197,9 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
         }
         const numVal = typeof val === "number" ? val : parseInt(trimmed, 10);
         if (!isNaN(numVal) && (typeof val === "number" || String(numVal) === trimmed)) {
-          if (numVal === 0) {
-            correctIndices.add(0);
-          } else if (numVal >= 1 && numVal <= intermediateChoices.length) {
-            correctIndices.add(numVal - 1);
+          const targetIndex = this.settings.oneBasedIndexing ? numVal - 1 : numVal;
+          if (targetIndex >= 0 && targetIndex < intermediateChoices.length) {
+            correctIndices.add(targetIndex);
           }
         }
       };
@@ -544,6 +537,12 @@ var QuizBlockSettingTab = class extends import_obsidian.PluginSettingTab {
     new import_obsidian.Setting(containerEl).setName("Instant feedback").setDesc("Immediately evaluate single-choice questions upon clicking an option.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.instantFeedback).onChange(async (val) => {
         this.plugin.settings.instantFeedback = val;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian.Setting(containerEl).setName("1-based indexing for numerical answers").setDesc("When enabled, numerical answers start at 1 (1 = Option A, 2 = Option B, etc.). When disabled (default), numerical answers start at 0 (0 = Option A, 1 = Option B, etc.), matching Python and JavaScript.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.oneBasedIndexing).onChange(async (val) => {
+        this.plugin.settings.oneBasedIndexing = val;
         await this.plugin.saveSettings();
       })
     );
