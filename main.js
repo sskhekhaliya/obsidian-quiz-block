@@ -145,10 +145,15 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
         let isInlineCorrect = false;
         if (typeof c === "string") {
           text = c.trim();
+        } else if (typeof c === "number" || typeof c === "boolean") {
+          text = String(c);
         } else if (typeof c === "object" && c !== null) {
-          text = (c.text || c.choice || "").trim();
+          const rawVal = c.text !== void 0 ? c.text : c.choice !== void 0 ? c.choice : "";
+          text = String(rawVal).trim();
           if (c.correct !== void 0) isInlineCorrect = Boolean(c.correct);
           if (c.isCorrect !== void 0) isInlineCorrect = Boolean(c.isCorrect);
+        } else if (c !== void 0 && c !== null) {
+          text = String(c).trim();
         }
         const taskMatch = text.match(/^\[([ xX])\]\s*(.*)$/);
         if (taskMatch) {
@@ -174,18 +179,18 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
         }
       });
       const resolveToken = (val) => {
-        if (typeof val === "number") {
-          if (val === 0) {
-            correctIndices.add(0);
-          } else if (val >= 1 && val <= intermediateChoices.length) {
-            correctIndices.add(val - 1);
-          }
-          return;
-        }
+        if (val === void 0 || val === null) return;
         const trimmed = String(val).trim();
         if (!trimmed) return;
-        if (trimmed.includes(",")) {
+        if (typeof val === "string" && trimmed.includes(",")) {
           trimmed.split(",").forEach((sub) => resolveToken(sub.trim()));
+          return;
+        }
+        const matchedIdx = intermediateChoices.findIndex(
+          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (matchedIdx !== -1) {
+          correctIndices.add(matchedIdx);
           return;
         }
         const letterMatch = trimmed.match(/^([A-Ha-h])\.?$/);
@@ -196,20 +201,13 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
             return;
           }
         }
-        const numVal = parseInt(trimmed, 10);
-        if (!isNaN(numVal) && String(numVal) === trimmed) {
+        const numVal = typeof val === "number" ? val : parseInt(trimmed, 10);
+        if (!isNaN(numVal) && (typeof val === "number" || String(numVal) === trimmed)) {
           if (numVal === 0) {
             correctIndices.add(0);
           } else if (numVal >= 1 && numVal <= intermediateChoices.length) {
             correctIndices.add(numVal - 1);
           }
-          return;
-        }
-        const matchedIdx = intermediateChoices.findIndex(
-          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (matchedIdx !== -1) {
-          correctIndices.add(matchedIdx);
         }
       };
       if (Array.isArray(rawAnswer)) {

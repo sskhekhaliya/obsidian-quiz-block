@@ -11,8 +11,8 @@ const DEFAULT_SETTINGS: QuizSettings = {
 };
 
 interface RawChoice {
-  text?: string;
-  choice?: string;
+  text?: string | number | boolean;
+  choice?: string | number | boolean;
   correct?: boolean;
   isCorrect?: boolean;
 }
@@ -23,8 +23,8 @@ interface RawQuestion {
   type?: string;
   hint?: string;
   explanation?: string;
-  choices?: (string | RawChoice)[];
-  options?: (string | RawChoice)[];
+  choices?: (string | number | boolean | RawChoice)[];
+  options?: (string | number | boolean | RawChoice)[];
   answer?: number | string | (number | string)[];
   correct?: number | string | (number | string)[];
 }
@@ -210,10 +210,15 @@ export default class QuizBlockPlugin extends Plugin {
 
         if (typeof c === "string") {
           text = c.trim();
+        } else if (typeof c === "number" || typeof c === "boolean") {
+          text = String(c);
         } else if (typeof c === "object" && c !== null) {
-          text = (c.text || c.choice || "").trim();
+          const rawVal = c.text !== undefined ? c.text : (c.choice !== undefined ? c.choice : "");
+          text = String(rawVal).trim();
           if (c.correct !== undefined) isInlineCorrect = Boolean(c.correct);
           if (c.isCorrect !== undefined) isInlineCorrect = Boolean(c.isCorrect);
+        } else if (c !== undefined && c !== null) {
+          text = String(c).trim();
         }
 
         // Check Obsidian markdown task-list format: [x] or [X]
@@ -252,26 +257,27 @@ export default class QuizBlockPlugin extends Plugin {
 
       // 2. Parse top-level `answer` or `correct` if provided
       const resolveToken = (val: any) => {
-        if (typeof val === "number") {
-          // If 0, treat as index 0; if 1..N, treat as 1-based option index
-          if (val === 0) {
-            correctIndices.add(0);
-          } else if (val >= 1 && val <= intermediateChoices.length) {
-            correctIndices.add(val - 1);
-          }
-          return;
-        }
+        if (val === undefined || val === null) return;
 
         const trimmed = String(val).trim();
         if (!trimmed) return;
 
         // Comma-separated list of answers like "A, B" or "Saturn, Jupiter"
-        if (trimmed.includes(",")) {
+        if (typeof val === "string" && trimmed.includes(",")) {
           trimmed.split(",").forEach((sub) => resolveToken(sub.trim()));
           return;
         }
 
-        // Check if it's a letter (A, B, C, D, etc.)
+        // 1. Direct text match with a choice (case-insensitive)
+        const matchedIdx = intermediateChoices.findIndex(
+          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
+        );
+        if (matchedIdx !== -1) {
+          correctIndices.add(matchedIdx);
+          return;
+        }
+
+        // 2. Check if it's a letter (A, B, C, D, etc.)
         const letterMatch = trimmed.match(/^([A-Ha-h])\.?$/);
         if (letterMatch) {
           const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65; // A -> 0, B -> 1
@@ -281,23 +287,14 @@ export default class QuizBlockPlugin extends Plugin {
           }
         }
 
-        // Check if numeric string ("1", "2")
-        const numVal = parseInt(trimmed, 10);
-        if (!isNaN(numVal) && String(numVal) === trimmed) {
+        // 3. Check if numeric value or numeric string (1, 2, "1", "2")
+        const numVal = typeof val === "number" ? val : parseInt(trimmed, 10);
+        if (!isNaN(numVal) && (typeof val === "number" || String(numVal) === trimmed)) {
           if (numVal === 0) {
             correctIndices.add(0);
           } else if (numVal >= 1 && numVal <= intermediateChoices.length) {
             correctIndices.add(numVal - 1);
           }
-          return;
-        }
-
-        // Match by choice text (case-insensitive)
-        const matchedIdx = intermediateChoices.findIndex(
-          (c) => c.text.toLowerCase() === trimmed.toLowerCase()
-        );
-        if (matchedIdx !== -1) {
-          correctIndices.add(matchedIdx);
         }
       };
 
