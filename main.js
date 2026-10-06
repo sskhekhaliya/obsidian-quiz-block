@@ -327,7 +327,8 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
     renderer.render();
   }
   dedentText(str) {
-    const lines = str.split("\n");
+    let normalized = str.replace(/([^\n`])(`{3,}|~{3,})/g, "$1\n$2");
+    const lines = normalized.split("\n");
     let minIndent = Infinity;
     for (const line of lines) {
       if (line.trim().length === 0) continue;
@@ -340,7 +341,7 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
     if (minIndent !== Infinity && minIndent > 0) {
       return lines.map((line) => line.trim().length === 0 ? "" : line.slice(minIndent)).join("\n").trim();
     }
-    return str.trim();
+    return normalized.trim();
   }
   preprocessPythonSource(source) {
     let text = source.replace(/"""([\s\S]*?)"""/g, (_, content) => JSON.stringify(this.dedentText(content)));
@@ -376,9 +377,9 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
   }
   parseSource(sourceText) {
     const trimmed = sourceText.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    const evalPython = (raw) => {
       try {
-        const processed = this.preprocessPythonSource(trimmed);
+        const processed = this.preprocessPythonSource(raw);
         const fn = new Function('"use strict"; return (' + processed + ");");
         const evaluated = fn();
         if (evaluated && typeof evaluated === "object") {
@@ -386,16 +387,17 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
         }
       } catch (e) {
       }
+      return null;
+    };
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      const res = evalPython(trimmed);
+      if (res) return res;
     }
+    const wrappedRes = evalPython("{\n" + trimmed + "\n}");
+    if (wrappedRes) return wrappedRes;
     try {
       return (0, import_obsidian.parseYaml)(sourceText);
     } catch (yamlErr) {
-      const processed = this.preprocessPythonSource(trimmed);
-      const fn = new Function('"use strict"; return (' + processed + ");");
-      const evaluated = fn();
-      if (evaluated && typeof evaluated === "object") {
-        return evaluated;
-      }
       throw yamlErr;
     }
   }

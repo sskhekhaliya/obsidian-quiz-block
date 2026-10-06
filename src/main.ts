@@ -149,7 +149,9 @@ export default class QuizBlockPlugin extends Plugin {
   }
 
   dedentText(str: string): string {
-    const lines = str.split("\n");
+    // If closing backticks are glued to code like }```, split onto a new line for CommonMark
+    let normalized = str.replace(/([^\n`])(`{3,}|~{3,})/g, "$1\n$2");
+    const lines = normalized.split("\n");
     let minIndent = Infinity;
     for (const line of lines) {
       if (line.trim().length === 0) continue;
@@ -166,7 +168,7 @@ export default class QuizBlockPlugin extends Plugin {
         .join("\n")
         .trim();
     }
-    return str.trim();
+    return normalized.trim();
   }
 
   preprocessPythonSource(source: string): string {
@@ -214,30 +216,34 @@ export default class QuizBlockPlugin extends Plugin {
   parseSource(sourceText: string): RawQuiz {
     const trimmed = sourceText.trim();
 
-    // 1. Primary: Python dictionary / JSON syntax (starts with '{' or '[')
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    const evalPython = (raw: string): RawQuiz | null => {
       try {
-        const processed = this.preprocessPythonSource(trimmed);
+        const processed = this.preprocessPythonSource(raw);
         const fn = new Function('"use strict"; return (' + processed + ');');
         const evaluated = fn();
         if (evaluated && typeof evaluated === "object") {
           return evaluated as RawQuiz;
         }
       } catch (e) {
-        // Fall through to YAML if Python dict parsing failed
+        // failed
       }
+      return null;
+    };
+
+    // 1. Python dictionary / JSON syntax (starts with '{' or '[')
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      const res = evalPython(trimmed);
+      if (res) return res;
     }
 
-    // 2. Fallback: YAML / alternative format
+    // 2. Auto-wrap in { ... } if user omitted outer curly braces
+    const wrappedRes = evalPython("{\n" + trimmed + "\n}");
+    if (wrappedRes) return wrappedRes;
+
+    // 3. Fallback: YAML / alternative format
     try {
       return parseYaml(sourceText) as RawQuiz;
     } catch (yamlErr) {
-      const processed = this.preprocessPythonSource(trimmed);
-      const fn = new Function('"use strict"; return (' + processed + ');');
-      const evaluated = fn();
-      if (evaluated && typeof evaluated === "object") {
-        return evaluated as RawQuiz;
-      }
       throw yamlErr;
     }
   }
