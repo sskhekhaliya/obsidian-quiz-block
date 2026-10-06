@@ -17,6 +17,10 @@ A modern, interactive quiz plugin for **[Obsidian](https://obsidian.md)** develo
 - **🔘 Single-Choice & Multi-Select Questions**:
   - **Single-choice**: Radio-style selection with option prefixes (`A.`, `B.`, `C.`) and instant evaluation.
   - **Multi-select**: Modern checkboxes with a dynamic filled "Submit" button that auto-converts to "Next" upon evaluation.
+- **🖋️ Live Editor Syntax Highlighting**:
+  - Real-time theme-adaptive syntax coloring while editing `qblock` code in Live Preview or Source mode.
+  - Keys (`title`, `questions`, `choices`, `answer`, etc.) are highlighted in your theme's property/accent color.
+  - Values (including multi-line triple-quoted strings containing code blocks or markdown) are highlighted in your theme's string/value color.
 - **📄 Multi-Line & Code Block Questions**:
   - Full multiline support (`white-space: pre-wrap`) for questions, choices, hints, and explanations—perfect for code snippets, paragraphs, and scenarios.
 - **💡 Hints & Explanations**:
@@ -138,32 +142,49 @@ questions:
 
 ---
 
-### 4. Zero-Indentation Python Dictionary & JSON Syntax
+### 4. Clean Python Dictionary Format (Recommended)
 
-If you don't want to worry about YAML spacing or indentation (especially when typing on a mobile keyboard or copy-pasting from ChatGPT), you can use Python dictionary or JSON syntax with `{}` and `[]`. Indentation does not matter:
+Write quizzes in clean Python dictionary or JSON syntax using `{}` and `[]`. Indentation does not matter, eliminating spacing errors on mobile or desktop keyboards:
 
 ````markdown
 ```qblock
 {
-  'title': 'Computer Science & Math',
+  'title': 'Python & Programming Mastery',
   'questions': [
     {
-      'question': 'What is the time complexity of binary search?',
-      'hint': 'The search space is cut in half on each step.',
-      'explanation': 'Binary search runs in O(log n) time.',
-      'choices': ['O(1)', 'O(log n)', 'O(n)', 'O(n^2)'],
-      'answer': ['B'],   # Letter B (or index 1)
+      'question': """What is the output of the following Python code?
+```python
+def append_item(val, items=[]):
+    items.append(val)
+    return items
+
+print(append_item(1))
+print(append_item(2))
+```""",
+      'hint': "Default argument expressions in Python are evaluated once when the function is defined.",
+      'choices': [
+        "`[1]` then `[2]`",
+        "`[1]` then `[1, 2]`",
+        "`[1, 1]` then `[2, 2]`",
+        "Raises TypeError"
+      ],
+      'answer': 'B',
+      'explanation': """Default list parameter `[]` is mutable and retained across calls:
+```python
+# Call 1: items is [1]
+# Call 2: items is [1, 2]
+```"""
     },
     {
-      'question': 'Which of the following is an odd prime number?',
-      'choices': [1, 3, 4, 6],   # Raw numbers directly supported in choices!
-      'answer': [1],             # 0-based index 1 = Option B (value 3)
-      'explanation': '3 is both odd and prime.',
-    },
-    {
-      'question': 'Which of the following are linear data structures?',
-      'choices': ['Array', 'Linked List', 'Binary Tree', 'Queue'],
-      'answer': ['A', 'B', 'D'], # Multi-select (or [0, 1, 3])
+      'question': "Which of the following methods return a new list without modifying the original list?",
+      'choices': [
+        "`sorted(my_list)`",
+        "`my_list.sort()`",
+        "`my_list.copy()`",
+        "`my_list.reverse()`"
+      ],
+      'answer': ['A', 'C'], # Multi-select question
+      'explanation': "`sorted()` and `.copy()` return new lists, while `.sort()` and `.reverse()` modify the list in place."
     }
   ]
 }
@@ -172,43 +193,36 @@ If you don't want to worry about YAML spacing or indentation (especially when ty
 
 ---
 
-### 5. Multi-Line Questions & Code Snippets
+### 5. Code Blocks, Inline Code & MathJax in Questions & Choices
 
-To enter questions with code blocks, multiple paragraphs, or scenarios, simply use the YAML pipe operator `|`:
+With native Markdown rendering powered by Obsidian:
+- **Syntax Highlighting**: Wrap multi-line code blocks in Python triple quotes (`"""```python ... ```"""`). All languages recognized by Obsidian (`python`, `javascript`, `cpp`, `sql`, `bash`, etc.) are rendered with full syntax highlighting.
+- **Inline Code**: Use single backticks (e.g. `` `sorted(my_list)` ``) in questions, choices, hints, and explanations.
+- **Code in Choices**: Choices can contain inline code chips or even full code block comparisons.
+- **LaTeX Math Formulas**: Use `$E=mc^2$` or `$$\sum_{i=1}^n x_i$$` for math and science quizzes.
 
 ````markdown
 ```qblock
-title: "Python Code Analysis"
-questions:
-  - question: |
-      Consider the following Python snippet:
-
-      def mystery(x, y):
-          return x * y if x > y else x + y
-
-      What will mystery(3, 7) output?
-    hint: "Notice the condition x > y."
-    explanation: |
-      Since 3 is not greater than 7 (3 > 7 is False),
-      it executes the else branch: 3 + 7 = 10.
-    choices:
-      - "21"
-      - "10"
-      - "4"
-      - "Error"
-    answer: [B]
-
-  - question: |
-      Given this list comprehension:
-      [x * 2 for x in [1, 2, 3] if x % 2 != 0]
-
-      What is the resulting list?
-    choices:
-      - "[2]"
-      - "[2, 6]"
-      - "[4]"
-      - "[1, 3]"
-    answer: [B]
+{
+  'title': 'Algorithm Complexity Quiz',
+  'questions': [
+    {
+      'question': """Which implementation has $O(1)$ time complexity for lookup?""",
+      'choices': [
+        """```python
+# Choice A: Dictionary lookup
+val = my_dict["key"]
+```""",
+        """```python
+# Choice B: Linear list search
+val = [x for x in my_list if x == "key"][0]
+```"""
+      ],
+      'answer': 'A',
+      'explanation': "Hash-table based dictionary lookups run in average $O(1)$ time."
+    }
+  ]
+}
 ```
 ````
 

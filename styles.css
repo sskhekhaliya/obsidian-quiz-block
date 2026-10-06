@@ -70,8 +70,21 @@
   font-weight: 500;
   line-height: 1.5;
   margin: 0 0 20px;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.qblock-question-text > p:first-child {
+  margin-top: 0;
+}
+
+.qblock-question-text > p:last-child {
+  margin-bottom: 0;
+}
+
+.qblock-question-text pre {
+  margin: 12px 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 /* Options: Strictly no stroke/border */
@@ -142,12 +155,20 @@
   width: 100%;
 }
 
+.qblock-option.has-code .qblock-option-row {
+  align-items: flex-start;
+}
+
 .qblock-option-prefix {
   color: var(--text-muted);
   flex-shrink: 0;
   font-size: 0.86em;
   font-weight: 600;
   min-width: 18px;
+}
+
+.qblock-option.has-code .qblock-option-prefix {
+  margin-top: 4px;
 }
 
 .qblock-checkbox {
@@ -164,6 +185,10 @@
   width: 18px;
 }
 
+.qblock-option.has-code .qblock-checkbox {
+  margin-top: 4px;
+}
+
 .qblock-option.is-selected .qblock-checkbox {
   background: var(--qb-accent);
   border-color: var(--qb-accent);
@@ -175,8 +200,40 @@
   flex: 1;
   font-size: 0.92em;
   line-height: 1.4;
-  white-space: pre-wrap;
+  min-width: 0;
   word-break: break-word;
+}
+
+/* Choices without codeblocks: stay strictly inline on the first line with zero extra margin */
+.qblock-option-text p {
+  display: inline;
+  line-height: inherit;
+  margin: 0 !important;
+  margin-block-end: 0 !important;
+  margin-block-start: 0 !important;
+  padding: 0 !important;
+}
+
+.qblock-option.has-code .qblock-option-text p {
+  display: block;
+  margin: 0 0 6px 0 !important;
+  margin-block-end: 6px !important;
+  margin-block-start: 0 !important;
+}
+
+.qblock-option.has-code .qblock-option-text p:last-child {
+  margin-bottom: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+.qblock-option-text pre {
+  margin: 6px 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.qblock-option-text code {
+  font-family: var(--font-monospace);
 }
 
 .qblock-user-answer-badge {
@@ -187,6 +244,10 @@
   margin-left: 6px;
 }
 
+.qblock-option.has-code .qblock-user-answer-badge {
+  margin-top: 4px;
+}
+
 .qblock-status-icon {
   align-items: center;
   display: flex;
@@ -194,6 +255,10 @@
   height: 18px;
   justify-content: center;
   width: 18px;
+}
+
+.qblock-option.has-code .qblock-status-icon {
+  margin-top: 4px;
 }
 
 .qblock-status-icon.is-correct {
@@ -366,10 +431,34 @@
 
 .qblock-card-text {
   color: var(--text-normal);
+  flex: 1;
   font-size: 0.86em;
   line-height: 1.45;
-  white-space: pre-wrap;
+  min-width: 0;
   word-break: break-word;
+}
+
+.qblock-card-text p {
+  margin: 0 0 6px 0;
+}
+
+.qblock-card-text p:last-child {
+  margin-bottom: 0;
+}
+
+.qblock-card-text pre {
+  background: var(--background-primary);
+  border: 1px solid var(--qb-border);
+  border-radius: 8px;
+  font-size: 0.9em;
+  margin: 8px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 8px 12px;
+}
+
+.qblock-card-text code {
+  font-family: var(--font-monospace);
 }
 
 /* Score Summary View */
@@ -507,7 +596,27 @@
 
 .qblock-missed-num {
   color: var(--text-normal);
+  flex-shrink: 0;
   font-weight: 600;
+  margin-top: 1px;
+}
+
+.qblock-missed-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.qblock-missed-text p {
+  display: inline;
+  margin: 0;
+}
+
+.qblock-missed-text pre {
+  background: var(--background-primary);
+  border-radius: 6px;
+  font-size: 0.85em;
+  margin: 4px 0;
+  padding: 6px 8px;
 }
 
 /* Action Cards */
@@ -555,6 +664,146 @@
   white-space: pre-wrap;
 }
 
+/* Ensure code blocks in qblock don't overflow container horizontally */
+.qblock-container pre {
+  max-width: 100%;
+  overflow-x: auto;
+  position: relative;
+}
+
+/* Hide duplicate core Obsidian copy buttons inside qblock container */
+.qblock-container .copy-code-button {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Code Block Actions: SS1 Language Pill + SS2 Double-Square Copy Icon
+   ========================================================================== */
+
+/* Hide background language flairs, pseudo-elements, and duplicate buttons */
+.qblock-container .code-block-flair,
+.qblock-container pre .code-block-flair,
+.qblock-container pre::before,
+.qblock-container pre::after,
+.qblock-container code::before,
+.qblock-container code::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* SS1: Language Pill Badge in top-right (borderless, filled on hover) */
+.qblock-lang-pill-wrap {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 10;
+}
+
+.qblock-lang-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--text-muted, #999);
+  font-family: var(--font-interface, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.qblock-lang-pill:hover {
+  background: var(--background-modifier-hover, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text-normal, #ddd) !important;
+}
+
+/* SS1: Blue "Copy" Tooltip Appearing Below Pill on Hover */
+.qblock-copy-popup {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 25;
+}
+
+.qblock-lang-pill:hover .qblock-copy-popup {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(4px);
+}
+
+.qblock-popup-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid var(--interactive-accent, #007acc);
+}
+
+.qblock-popup-bubble {
+  background: var(--interactive-accent, #007acc);
+  color: #ffffff !important;
+  border-radius: 9999px;
+  padding: 3px 12px;
+  font-family: var(--font-interface, sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+/* SS2: Double-Square Copy Icon when language is not defined */
+.qblock-icon-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-muted, #888) !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.65;
+  user-select: none;
+  z-index: 10;
+}
+
+pre:hover .qblock-icon-copy-btn,
+.qblock-icon-copy-btn:hover {
+  background: var(--background-modifier-hover, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text-normal, #ddd) !important;
+  opacity: 1;
+}
+
+.qblock-icon-copy-btn.is-copied {
+  color: var(--color-green, #34a853) !important;
+  opacity: 1;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 580px) {
   .qblock-container {
@@ -574,3 +823,43 @@
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   CodeMirror 6 Editor Syntax Highlighting for qblock (Option A)
+   Keys: Theme-based property/accent color
+   Values: Theme-based string/value color (all lines & nested code snippets)
+   ========================================================================== */
+
+.cm-s-obsidian .qblock-cm-key,
+.cm-line .qblock-cm-key,
+span.qblock-cm-key {
+  color: var(--code-property, var(--text-accent, #569cd6)) !important;
+  font-weight: 500;
+}
+
+.cm-s-obsidian .qblock-cm-val,
+.cm-line .qblock-cm-val,
+span.qblock-cm-val {
+  color: var(--code-string, var(--color-green, #ce9178)) !important;
+}
+
+.cm-s-obsidian .qblock-cm-punct,
+.cm-line .qblock-cm-punct,
+span.qblock-cm-punct {
+  color: var(--code-punctuation, var(--text-muted, #808080)) !important;
+}
+
+.cm-s-obsidian .qblock-cm-comment,
+.cm-line .qblock-cm-comment,
+span.qblock-cm-comment {
+  color: var(--code-comment, var(--text-faint, #6a9955)) !important;
+  font-style: italic;
+}
+
+.cm-s-obsidian .qblock-cm-fence-tag,
+.cm-line .qblock-cm-fence-tag,
+span.qblock-cm-fence-tag {
+  color: var(--text-accent, #569cd6) !important;
+  font-weight: 600;
+}
+

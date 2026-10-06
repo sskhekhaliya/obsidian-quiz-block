@@ -24,6 +24,238 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
+
+// src/editor-highlight.ts
+var import_state = require("@codemirror/state");
+var import_view = require("@codemirror/view");
+var keyDeco = import_view.Decoration.mark({ class: "qblock-cm-key cm-property" });
+var valDeco = import_view.Decoration.mark({ class: "qblock-cm-val cm-string" });
+var punctDeco = import_view.Decoration.mark({ class: "qblock-cm-punct cm-punctuation" });
+var commentDeco = import_view.Decoration.mark({ class: "qblock-cm-comment cm-comment" });
+var fenceTagDeco = import_view.Decoration.mark({ class: "qblock-cm-fence-tag cm-keyword" });
+function findQBlocks(doc) {
+  const blocks = [];
+  let inBlock = false;
+  let fenceChar = "";
+  let fenceLen = 0;
+  let contentFrom = 0;
+  let tagFrom;
+  let tagTo;
+  let inTripleQuote = false;
+  let tripleQuoteChar = "";
+  for (let i = 1; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    const text = line.text;
+    if (!inBlock) {
+      const match = text.match(/^([ \t]*)(`{3,}|~{3,})([ \t]*)(qblock|quizblock)\b/i);
+      if (match) {
+        inBlock = true;
+        fenceChar = match[2][0];
+        fenceLen = match[2].length;
+        contentFrom = line.to < doc.length ? line.to + 1 : doc.length;
+        inTripleQuote = false;
+        const tagStart = line.from + match[1].length + match[2].length + match[3].length;
+        tagFrom = tagStart;
+        tagTo = tagStart + match[4].length;
+      }
+    } else {
+      let col = 0;
+      while (col < text.length) {
+        if (!inTripleQuote) {
+          if (text[col] === "#") {
+            break;
+          }
+          if (text.startsWith('"""', col)) {
+            inTripleQuote = true;
+            tripleQuoteChar = '"""';
+            col += 3;
+            continue;
+          }
+          if (text.startsWith("'''", col)) {
+            inTripleQuote = true;
+            tripleQuoteChar = "'''";
+            col += 3;
+            continue;
+          }
+          if (text[col] === '"' || text[col] === "'") {
+            const q = text[col];
+            col++;
+            while (col < text.length) {
+              if (text[col] === "\\") {
+                col += 2;
+                continue;
+              }
+              if (text[col] === q) {
+                col++;
+                break;
+              }
+              col++;
+            }
+            continue;
+          }
+        } else {
+          if (text[col] === "\\") {
+            col += 2;
+            continue;
+          }
+          if (text.startsWith(tripleQuoteChar, col)) {
+            inTripleQuote = false;
+            col += 3;
+            continue;
+          }
+        }
+        col++;
+      }
+      if (!inTripleQuote) {
+        const closeMatch = text.match(/^([ \t]*)(`{3,}|~{3,})[ \t]*$/);
+        if (closeMatch && closeMatch[2][0] === fenceChar && closeMatch[2].length >= fenceLen) {
+          inBlock = false;
+          const contentTo = line.from > 0 ? line.from - 1 : line.from;
+          if (contentTo >= contentFrom) {
+            blocks.push({ contentFrom, contentTo, tagFrom, tagTo });
+          } else {
+            blocks.push({ contentFrom, contentTo: contentFrom, tagFrom, tagTo });
+          }
+          tagFrom = void 0;
+          tagTo = void 0;
+        }
+      }
+    }
+  }
+  if (inBlock) {
+    blocks.push({ contentFrom, contentTo: doc.length, tagFrom, tagTo });
+  }
+  return blocks;
+}
+function buildQBlockDecorations(view) {
+  const doc = view.state.doc;
+  const blocks = findQBlocks(doc);
+  if (blocks.length === 0) {
+    return import_view.Decoration.none;
+  }
+  const builder = new import_state.RangeSetBuilder();
+  for (const block of blocks) {
+    if (block.tagFrom !== void 0 && block.tagTo !== void 0 && block.tagFrom < block.tagTo) {
+      builder.add(block.tagFrom, block.tagTo, fenceTagDeco);
+    }
+    if (block.contentTo <= block.contentFrom) {
+      continue;
+    }
+    const blockText = doc.sliceString(block.contentFrom, block.contentTo);
+    let i = 0;
+    while (i < blockText.length) {
+      const ch = blockText[i];
+      if (ch === " " || ch === "	" || ch === "\n" || ch === "\r") {
+        i++;
+        continue;
+      }
+      if (ch === "#") {
+        const start = i;
+        while (i < blockText.length && blockText[i] !== "\n") {
+          i++;
+        }
+        builder.add(block.contentFrom + start, block.contentFrom + i, commentDeco);
+        continue;
+      }
+      if (ch === "{" || ch === "}" || ch === "[" || ch === "]" || ch === "," || ch === ":") {
+        builder.add(block.contentFrom + i, block.contentFrom + i + 1, punctDeco);
+        i++;
+        continue;
+      }
+      if (blockText.startsWith('"""', i) || blockText.startsWith("'''", i)) {
+        const quote = blockText.slice(i, i + 3);
+        const start = i;
+        i += 3;
+        while (i < blockText.length) {
+          if (blockText[i] === "\\") {
+            i += 2;
+            continue;
+          }
+          if (blockText.startsWith(quote, i)) {
+            i += 3;
+            break;
+          }
+          i++;
+        }
+        const end = i;
+        let nextIdx = end;
+        while (nextIdx < blockText.length && /\s/.test(blockText[nextIdx])) {
+          nextIdx++;
+        }
+        const isKey = nextIdx < blockText.length && blockText[nextIdx] === ":";
+        builder.add(block.contentFrom + start, block.contentFrom + end, isKey ? keyDeco : valDeco);
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        const quote = ch;
+        const start = i;
+        i++;
+        while (i < blockText.length) {
+          if (blockText[i] === "\\") {
+            i += 2;
+            continue;
+          }
+          if (blockText[i] === quote) {
+            i++;
+            break;
+          }
+          if (blockText[i] === "\n") {
+            break;
+          }
+          i++;
+        }
+        const end = i;
+        let nextIdx = end;
+        while (nextIdx < blockText.length && /\s/.test(blockText[nextIdx])) {
+          nextIdx++;
+        }
+        const isKey = nextIdx < blockText.length && blockText[nextIdx] === ":";
+        builder.add(block.contentFrom + start, block.contentFrom + end, isKey ? keyDeco : valDeco);
+        continue;
+      }
+      const numMatch = blockText.slice(i).match(/^[-+]?\d+(\.\d+)?([eE][-+]?\d+)?/);
+      if (numMatch && numMatch[0].length > 0) {
+        const matchLen = numMatch[0].length;
+        builder.add(block.contentFrom + i, block.contentFrom + i + matchLen, valDeco);
+        i += matchLen;
+        continue;
+      }
+      if (/[a-zA-Z_]/.test(ch)) {
+        const start = i;
+        while (i < blockText.length && /[a-zA-Z0-9_-]/.test(blockText[i])) {
+          i++;
+        }
+        const end = i;
+        let nextIdx = end;
+        while (nextIdx < blockText.length && /\s/.test(blockText[nextIdx])) {
+          nextIdx++;
+        }
+        const isKey = nextIdx < blockText.length && blockText[nextIdx] === ":";
+        builder.add(block.contentFrom + start, block.contentFrom + end, isKey ? keyDeco : valDeco);
+        continue;
+      }
+      i++;
+    }
+  }
+  return builder.finish();
+}
+var qblockHighlightPlugin = import_view.ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      this.decorations = buildQBlockDecorations(view);
+    }
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildQBlockDecorations(update.view);
+      }
+    }
+  },
+  {
+    decorations: (v) => v.decorations
+  }
+);
+
+// src/main.ts
 var DEFAULT_SETTINGS = {
   shuffleByDefault: false,
   instantFeedback: true,
@@ -42,6 +274,7 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
     this.registerMarkdownCodeBlockProcessor("quizblock", (source, el, ctx) => {
       this.renderQuizBlock(source, el, ctx);
     });
+    this.registerEditorExtension(qblockHighlightPlugin);
     this.addCommand({
       id: "insert-qblock-template",
       name: "Insert Quiz Block template",
@@ -90,15 +323,75 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
       this.renderError(container, "No valid questions found", "Ensure your questions array contains valid question texts and choices.");
       return;
     }
-    const renderer = new QuizRenderer(container, parsed, this.settings);
+    const renderer = new QuizRenderer(container, parsed, this.settings, this.app, ctx.sourcePath, this);
     renderer.render();
   }
+  dedentText(str) {
+    const lines = str.split("\n");
+    let minIndent = Infinity;
+    for (const line of lines) {
+      if (line.trim().length === 0) continue;
+      const match = line.match(/^[ \t]*/);
+      const indentLength = match ? match[0].length : 0;
+      if (indentLength < minIndent) {
+        minIndent = indentLength;
+      }
+    }
+    if (minIndent !== Infinity && minIndent > 0) {
+      return lines.map((line) => line.trim().length === 0 ? "" : line.slice(minIndent)).join("\n").trim();
+    }
+    return str.trim();
+  }
+  preprocessPythonSource(source) {
+    let text = source.replace(/"""([\s\S]*?)"""/g, (_, content) => JSON.stringify(this.dedentText(content)));
+    text = text.replace(/'''([\s\S]*?)'''/g, (_, content) => JSON.stringify(this.dedentText(content)));
+    const lines = text.split("\n");
+    const cleanedLines = lines.map((line) => {
+      let inDouble = false;
+      let inSingle = false;
+      let escape = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (char === "\\") {
+          escape = true;
+          continue;
+        }
+        if (char === '"' && !inSingle) {
+          inDouble = !inDouble;
+        } else if (char === "'" && !inDouble) {
+          inSingle = !inSingle;
+        } else if (char === "#" && !inDouble && !inSingle) {
+          return line.slice(0, i);
+        }
+      }
+      return line;
+    });
+    text = cleanedLines.join("\n");
+    text = text.replace(/\bTrue\b/g, "true").replace(/\bFalse\b/g, "false").replace(/\bNone\b/g, "null");
+    return text.trim();
+  }
   parseSource(sourceText) {
+    const trimmed = sourceText.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const processed = this.preprocessPythonSource(trimmed);
+        const fn = new Function('"use strict"; return (' + processed + ");");
+        const evaluated = fn();
+        if (evaluated && typeof evaluated === "object") {
+          return evaluated;
+        }
+      } catch (e) {
+      }
+    }
     try {
       return (0, import_obsidian.parseYaml)(sourceText);
     } catch (yamlErr) {
-      const cleaned = sourceText.replace(/:\s*True\b/g, ": true").replace(/:\s*False\b/g, ": false").replace(/:\s*None\b/g, ": null");
-      const fn = new Function('"use strict"; return (' + cleaned + ");");
+      const processed = this.preprocessPythonSource(trimmed);
+      const fn = new Function('"use strict"; return (' + processed + ");");
       const evaluated = fn();
       if (evaluated && typeof evaluated === "object") {
         return evaluated;
@@ -243,7 +536,7 @@ var QuizBlockPlugin = class extends import_obsidian.Plugin {
   }
 };
 var QuizRenderer = class {
-  constructor(container, quiz, settings) {
+  constructor(container, quiz, settings, app, sourcePath, plugin) {
     this.currentIndex = 0;
     this.viewMode = "quiz";
     this.isHintOpen = false;
@@ -254,8 +547,122 @@ var QuizRenderer = class {
     this.container = container;
     this.quiz = quiz;
     this.settings = settings;
+    this.app = app;
+    this.sourcePath = sourcePath;
+    this.plugin = plugin;
     const shouldShuffle = quiz.shuffle || settings.shuffleByDefault;
     this.questions = shouldShuffle ? this.shuffleArray([...quiz.questions]) : [...quiz.questions];
+  }
+  async renderMarkdown(markdown, el) {
+    try {
+      await import_obsidian.MarkdownRenderer.render(this.app, markdown, el, this.sourcePath, this.plugin);
+    } catch {
+      el.setText(markdown);
+    }
+    this.enhanceCodeBlocks(el);
+  }
+  enhanceCodeBlocks(container) {
+    const LANG_MAP = {
+      python: "Python",
+      py: "Python",
+      javascript: "JavaScript",
+      js: "JavaScript",
+      typescript: "TypeScript",
+      ts: "TypeScript",
+      java: "Java",
+      cpp: "C++",
+      c: "C",
+      csharp: "C#",
+      cs: "C#",
+      html: "HTML",
+      css: "CSS",
+      json: "JSON",
+      yaml: "YAML",
+      yml: "YAML",
+      sql: "SQL",
+      bash: "Bash",
+      sh: "Shell",
+      rust: "Rust",
+      rs: "Rust",
+      go: "Go",
+      kotlin: "Kotlin",
+      kt: "Kotlin",
+      ruby: "Ruby",
+      rb: "Ruby",
+      php: "PHP",
+      swift: "Swift",
+      dart: "Dart",
+      lua: "Lua",
+      r: "R"
+    };
+    const preEls = container.querySelectorAll("pre");
+    preEls.forEach((pre) => {
+      container.querySelectorAll(".code-block-flair").forEach((b) => b.remove());
+      pre.querySelectorAll(".code-block-flair, .copy-code-button, .qblock-lang-pill-wrap, .qblock-icon-copy-btn").forEach((b) => b.remove());
+      const codeEl = pre.querySelector("code");
+      let lang = "";
+      const classList = (codeEl?.className || pre.className || "").split(/\s+/);
+      for (const cls of classList) {
+        if (cls.startsWith("language-")) {
+          const extracted = cls.replace("language-", "").trim().toLowerCase();
+          if (extracted && extracted !== "none" && extracted !== "text" && extracted !== "undefined") {
+            lang = extracted;
+            break;
+          }
+        }
+      }
+      const doubleSquareSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+      const checkIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+      if (lang) {
+        const displayName = LANG_MAP[lang] || lang.charAt(0).toUpperCase() + lang.slice(1);
+        const wrap = document.createElement("div");
+        wrap.className = "qblock-lang-pill-wrap";
+        const pill = document.createElement("div");
+        pill.className = "qblock-lang-pill";
+        pill.innerHTML = `<span class="qblock-lang-name">${displayName}</span><div class="qblock-copy-popup"><div class="qblock-popup-arrow"></div><div class="qblock-popup-bubble">Copy</div></div>`;
+        const bubble = pill.querySelector(".qblock-popup-bubble");
+        pill.onclick = async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const codeText = codeEl ? codeEl.innerText : pre.innerText;
+          try {
+            await navigator.clipboard.writeText(codeText.trimEnd());
+            if (bubble) bubble.textContent = "Copied!";
+            setTimeout(() => {
+              if (bubble) bubble.textContent = "Copy";
+            }, 1500);
+          } catch (err) {
+            console.error("Failed to copy code to clipboard", err);
+          }
+        };
+        wrap.appendChild(pill);
+        pre.appendChild(wrap);
+      } else {
+        const btn = document.createElement("button");
+        btn.className = "qblock-icon-copy-btn";
+        btn.setAttribute("type", "button");
+        btn.setAttribute("aria-label", "Copy code");
+        btn.title = "Copy code";
+        btn.innerHTML = doubleSquareSvg;
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const codeText = codeEl ? codeEl.innerText : pre.innerText;
+          try {
+            await navigator.clipboard.writeText(codeText.trimEnd());
+            btn.classList.add("is-copied");
+            btn.innerHTML = checkIcon;
+            setTimeout(() => {
+              btn.classList.remove("is-copied");
+              btn.innerHTML = doubleSquareSvg;
+            }, 1500);
+          } catch (err) {
+            console.error("Failed to copy code to clipboard", err);
+          }
+        };
+        pre.appendChild(btn);
+      }
+    });
   }
   shuffleArray(arr) {
     const result = [...arr];
@@ -293,7 +700,7 @@ var QuizRenderer = class {
   }
   renderHeader() {
     const header = this.container.createDiv("qblock-header");
-    header.createEl("h3", { text: this.quiz.title, cls: "qblock-title" });
+    header.createDiv({ text: this.quiz.title, cls: "qblock-title" });
   }
   renderQuestionView() {
     const q = this.questions[this.currentIndex];
@@ -304,7 +711,8 @@ var QuizRenderer = class {
       text: `${this.currentIndex + 1} / ${this.questions.length}`,
       cls: "qblock-counter"
     });
-    wrap.createEl("div", { text: q.question, cls: "qblock-question-text" });
+    const questionEl = wrap.createDiv("qblock-question-text");
+    this.renderMarkdown(q.question, questionEl);
     const optionsList = wrap.createDiv("qblock-options");
     q.choices.forEach((choice, choiceIdx) => {
       this.renderOptionItem(optionsList, q, choice, choiceIdx);
@@ -315,19 +723,25 @@ var QuizRenderer = class {
       const hintCard = belowControls.createDiv("qblock-hint-card");
       const icon = hintCard.createDiv("qblock-card-icon");
       icon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>`;
-      hintCard.createDiv({ text: q.hint, cls: "qblock-card-text" });
+      const hintText = hintCard.createDiv("qblock-card-text");
+      this.renderMarkdown(q.hint, hintText);
     }
     if (this.isCurrentSubmitted && q.explanation) {
       const expCard = belowControls.createDiv("qblock-explanation-card");
       const icon = expCard.createDiv("qblock-card-icon");
       icon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`;
-      expCard.createDiv({ text: q.explanation, cls: "qblock-card-text" });
+      const expText = expCard.createDiv("qblock-card-text");
+      this.renderMarkdown(q.explanation, expText);
     }
   }
   renderOptionItem(container, q, choice, choiceIdx) {
     const isSubmitted = this.isCurrentSubmitted;
     const isChosen = this.currentResponses.includes(choiceIdx);
+    const hasCode = choice.text.includes("```");
     let optionCls = "qblock-option";
+    if (hasCode) {
+      optionCls += " has-code";
+    }
     if (isChosen && !isSubmitted) {
       optionCls += " is-selected";
     }
@@ -336,7 +750,11 @@ var QuizRenderer = class {
       else if (isChosen) optionCls += " is-incorrect";
     }
     const item = container.createDiv(optionCls);
-    item.onclick = () => {
+    item.onclick = (e) => {
+      const target = e.target;
+      if (target && (target.closest(".copy-code-button") || target.closest(".qblock-lang-pill-wrap") || target.closest(".qblock-icon-copy-btn") || target.closest("button") || target.closest(".code-block-flair"))) {
+        return;
+      }
       this.handleOptionClick(q, choiceIdx);
     };
     const row = item.createDiv("qblock-option-row");
@@ -357,7 +775,8 @@ var QuizRenderer = class {
     } else {
       row.createSpan({ text: choice.prefix, cls: "qblock-option-prefix" });
     }
-    row.createSpan({ text: choice.text, cls: "qblock-option-text" });
+    const textEl = row.createDiv("qblock-option-text");
+    this.renderMarkdown(choice.text, textEl);
     if (isSubmitted && isChosen) {
       row.createSpan({ text: "\xB7 Your answer", cls: "qblock-user-answer-badge" });
     }
@@ -491,7 +910,8 @@ var QuizRenderer = class {
           this.render();
         };
         item.createSpan({ text: `${index + 1}.`, cls: "qblock-missed-num" });
-        item.createSpan({ text: question.question });
+        const textSpan = item.createSpan("qblock-missed-text");
+        this.renderMarkdown(question.question, textSpan);
       });
     }
     const action1 = wrap.createDiv("qblock-action-card");
@@ -549,26 +969,45 @@ var QuizBlockSettingTab = class extends import_obsidian.PluginSettingTab {
   }
 };
 var SAMPLE_QUIZ_TEMPLATE = `\`\`\`qblock
-title: "Sample Knowledge Check"
-questions:
-  - question: "Which planet is famous for its prominent ring system?"
-    hint: "It is the sixth planet from the Sun."
-    explanation: "Saturn has the most extensive and visible ring system in our Solar System."
-    choices:
-      - "Jupiter"
-      - "Saturn"
-      - "Neptune"
-      - "Uranus"
-    answer: [B]
+{
+  'title': 'Python & Programming Mastery',
+  'questions': [
+    {
+      'question': """What is the output of the following Python code?
+\`\`\`python
+def append_item(val, items=[]):
+    items.append(val)
+    return items
 
-  - question: "Which of the following colors are primary in additive light mixing (RGB)?"
-    hint: "Think of digital display pixels."
-    explanation: "Red, Green, and Blue are additive primary colors."
-    choices:
-      - "Red"
-      - "Yellow"
-      - "Green"
-      - "Black"
-    answer: [A, C]
+print(append_item(1))
+print(append_item(2))
+\`\`\`""",
+      'hint': "Default argument expressions in Python are evaluated once when the function is defined.",
+      'choices': [
+        "\`[1]\` then \`[2]\`",
+        "\`[1]\` then \`[1, 2]\`",
+        "\`[1, 1]\` then \`[2, 2]\`",
+        "Raises TypeError"
+      ],
+      'answer': 'B',
+      'explanation': """Default list parameter \`[]\` is mutable and retained across calls:
+\`\`\`python
+# Call 1: items is [1]
+# Call 2: items is [1, 2]
+\`\`\`"""
+    },
+    {
+      'question': "Which of the following methods return a new list without modifying the original list?",
+      'choices': [
+        "\`sorted(my_list)\`",
+        "\`my_list.sort()\`",
+        "\`my_list.copy()\`",
+        "\`my_list.reverse()\`"
+      ],
+      'answer': ['A', 'C'], # Multi-select question
+      'explanation': "\`sorted()\` and \`.copy()\` return new lists, while \`.sort()\` and \`.reverse()\` modify the list in place."
+    }
+  ]
+}
 \`\`\`
 `;
