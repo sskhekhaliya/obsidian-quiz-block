@@ -18,6 +18,9 @@ interface RawChoice {
   choice?: string | number | boolean;
   correct?: boolean;
   isCorrect?: boolean;
+  description?: string;
+  desc?: string;
+  explanation?: string;
 }
 
 interface RawQuestion {
@@ -45,6 +48,7 @@ interface QuizChoice {
   text: string;
   prefix: string;
   isCorrect: boolean;
+  description?: string;
 }
 
 interface QuizQuestion {
@@ -65,6 +69,7 @@ interface ParsedQuiz {
 interface TempChoice {
   text: string;
   isInlineCorrect: boolean;
+  description?: string;
 }
 
 export default class QuizBlockPlugin extends Plugin {
@@ -295,6 +300,7 @@ export default class QuizBlockPlugin extends Plugin {
       const intermediateChoices: TempChoice[] = rawChoices.map((c) => {
         let text = "";
         let isInlineCorrect = false;
+        let description: string | undefined = undefined;
 
         if (typeof c === "string") {
           text = c.trim();
@@ -305,6 +311,10 @@ export default class QuizBlockPlugin extends Plugin {
           text = String(rawVal).trim();
           if (c.correct !== undefined) isInlineCorrect = Boolean(c.correct);
           if (c.isCorrect !== undefined) isInlineCorrect = Boolean(c.isCorrect);
+          const rawDesc = c.description !== undefined ? c.description : (c.desc !== undefined ? c.desc : c.explanation);
+          if (rawDesc !== undefined && rawDesc !== null) {
+            description = String(rawDesc).trim();
+          }
         } else if (c !== undefined && c !== null) {
           text = String(c).trim();
         }
@@ -333,7 +343,7 @@ export default class QuizBlockPlugin extends Plugin {
           text = suffixMatch[1].trim();
         }
 
-        return { text, isInlineCorrect };
+        return { text, isInlineCorrect, description };
       });
 
       // Register any inline-marked correct answers
@@ -390,7 +400,8 @@ export default class QuizBlockPlugin extends Plugin {
           id: `q${qIndex}_opt${cIndex}`,
           text: c.text,
           prefix: prefixes[cIndex % prefixes.length],
-          isCorrect: correctIndices.has(cIndex)
+          isCorrect: correctIndices.has(cIndex),
+          description: c.description
         });
       });
 
@@ -442,6 +453,21 @@ class QuizRenderer {
   responses: Map<number, number[]> = new Map();
   // Question indices that have been submitted/evaluated
   submittedQuestions: Set<number> = new Set();
+  // Option keys (e.g. qId_choiceIdx) expanded by user
+  expandedOptions: Set<string> = new Set();
+
+  isOptionExpanded(qId: string, choiceIdx: number): boolean {
+    return this.expandedOptions.has(`${qId}_${choiceIdx}`);
+  }
+
+  toggleOptionExpanded(qId: string, choiceIdx: number) {
+    const key = `${qId}_${choiceIdx}`;
+    if (this.expandedOptions.has(key)) {
+      this.expandedOptions.delete(key);
+    } else {
+      this.expandedOptions.add(key);
+    }
+  }
 
   constructor(
     container: HTMLElement,
@@ -655,56 +681,88 @@ class QuizRenderer {
     const questionEl = wrap.createDiv("qblock-question-text");
     this.renderMarkdown(q.question, questionEl);
 
-    // Options List (clean options without top feedback banner)
+    // Options List
     const optionsList = wrap.createDiv("qblock-options");
     q.choices.forEach((choice, choiceIdx) => {
       this.renderOptionItem(optionsList, q, choice, choiceIdx);
     });
 
+    // Multi-Select Evaluation Summary (SS 4: e.g. "2/3 Correct, 1 Incorrect")
+    if (q.type === "multi" && this.isCurrentSubmitted) {
+      this.renderMultiSummary(wrap, q);
+    }
+
     // Controls Bar (Buttons)
     this.renderControls(wrap, q);
 
-    // Below the buttons: Hint & Single Question Explanation
-    const belowControls = wrap.createDiv("qblock-below-controls");
-
-    // Hint Card (opens below buttons when toggled)
-    if (q.hint && this.isHintOpen) {
+    // Below the buttons: Hint Card (only if hint is open and NOT submitted)
+    if (q.hint && this.isHintOpen && !this.isCurrentSubmitted) {
+      const belowControls = wrap.createDiv("qblock-below-controls");
       const hintCard = belowControls.createDiv("qblock-hint-card");
       const icon = hintCard.createDiv("qblock-card-icon");
       icon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>`;
       const hintText = hintCard.createDiv("qblock-card-text");
       this.renderMarkdown(q.hint, hintText);
     }
+  }
 
-    // Single Question Explanation Card (shows below buttons when answered)
-    if (this.isCurrentSubmitted && q.explanation) {
-      const expCard = belowControls.createDiv("qblock-explanation-card");
-      const icon = expCard.createDiv("qblock-card-icon");
-      icon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>`;
-      const expText = expCard.createDiv("qblock-card-text");
-      this.renderMarkdown(q.explanation, expText);
+  renderMultiSummary(container: HTMLElement, q: QuizQuestion) {
+    const totalCorrect = q.choices.filter((c) => c.isCorrect).length;
+    const correctChosen = this.currentResponses.filter((idx) => q.choices[idx]?.isCorrect).length;
+    const incorrectChosen = this.currentResponses.filter((idx) => !q.choices[idx]?.isCorrect).length;
+
+    let text = "";
+    if (incorrectChosen === 0 && correctChosen === totalCorrect) {
+      text = `All ${totalCorrect} Correct!`;
+    } else if (incorrectChosen > 0) {
+      text = `${correctChosen}/${totalCorrect} Correct, ${incorrectChosen} Incorrect`;
+    } else {
+      text = `${correctChosen}/${totalCorrect} Correct`;
     }
+
+    const summaryBox = container.createDiv("qblock-multi-summary");
+    summaryBox.createSpan({ text, cls: "qblock-multi-summary-text" });
   }
 
   renderOptionItem(container: HTMLElement, q: QuizQuestion, choice: QuizChoice, choiceIdx: number) {
     const isSubmitted = this.isCurrentSubmitted;
     const isChosen = this.currentResponses.includes(choiceIdx);
-
     const hasCode = choice.text.includes("```");
 
     let optionCls = "qblock-option";
-    if (hasCode) {
-      optionCls += " has-code";
-    }
-    if (isChosen && !isSubmitted) {
-      optionCls += " is-selected";
-    }
-    if (isSubmitted) {
-      if (choice.isCorrect) optionCls += " is-correct";
-      else if (isChosen) optionCls += " is-incorrect";
+    if (hasCode) optionCls += " has-code";
+
+    if (!isSubmitted) {
+      if (isChosen) optionCls += " is-selected";
+    } else {
+      optionCls += " is-submitted-option";
+      if (q.type === "single") {
+        if (choice.isCorrect && isChosen) {
+          optionCls += " is-correct-chosen";
+        } else if (!choice.isCorrect && isChosen) {
+          optionCls += " is-incorrect-chosen";
+        } else if (choice.isCorrect && !isChosen) {
+          optionCls += " is-correct-unchosen";
+        } else {
+          optionCls += " is-disabled-neutral";
+        }
+      } else {
+        // Multi select
+        if (choice.isCorrect && isChosen) {
+          optionCls += " is-correct-chosen";
+        } else if (choice.isCorrect && !isChosen) {
+          optionCls += " is-correct-unchosen-outline";
+        } else if (!choice.isCorrect && isChosen) {
+          optionCls += " is-incorrect-chosen";
+        } else {
+          optionCls += " is-incorrect-unchosen";
+        }
+      }
     }
 
     const item = container.createDiv(optionCls);
+
+    // Click handler
     item.onclick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (
@@ -712,44 +770,96 @@ class QuizRenderer {
         (target.closest(".copy-code-button") ||
           target.closest(".qblock-lang-pill-wrap") ||
           target.closest(".qblock-icon-copy-btn") ||
-          target.closest("button") ||
-          target.closest(".code-block-flair"))
+          target.closest(".code-block-flair") ||
+          target.closest("a"))
       ) {
         return;
       }
-      this.handleOptionClick(q, choiceIdx);
+
+      if (!isSubmitted) {
+        this.handleOptionClick(q, choiceIdx);
+      } else if (q.type === "multi" && choice.description) {
+        // In multi-select, clicking the option toggles its description
+        this.toggleOptionExpanded(q.id, choiceIdx);
+        this.render();
+      }
     };
 
+    // Main row: Prefix / Icon + Text + (Your answer badge) + (Chevron)
     const row = item.createDiv("qblock-option-row");
 
     if (isSubmitted) {
-      // Status icon (green check or red cross)
-      const statusIcon = row.createDiv(`qblock-status-icon ${choice.isCorrect ? "is-correct" : "is-incorrect"}`);
-      if (choice.isCorrect) {
-        statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
-      } else if (isChosen) {
-        statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
-      } else {
+      if (q.type === "single") {
+        // Single choice: Keep prefix (A., B., C.) in row
         row.createSpan({ text: choice.prefix, cls: "qblock-option-prefix" });
+      } else {
+        // Multi choice: Left status icon (green check or red cross)
+        const statusIcon = row.createDiv(`qblock-status-icon ${choice.isCorrect ? "is-correct" : "is-incorrect"}`);
+        if (choice.isCorrect) {
+          statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
+        } else {
+          statusIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
+        }
       }
     } else if (q.type === "multi") {
-      // Checkbox for multi-select
+      // Unsubmitted Multi: Checkbox
       const checkbox = row.createDiv("qblock-checkbox");
       if (isChosen) {
         checkbox.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
       }
     } else {
-      // Prefix A., B., C. for single select
+      // Unsubmitted Single: Prefix A., B., C.
       row.createSpan({ text: choice.prefix, cls: "qblock-option-prefix" });
     }
 
-    // Option text (rendered via MarkdownRenderer for code chips and formatting)
+    // Option text
     const textEl = row.createDiv("qblock-option-text");
     this.renderMarkdown(choice.text, textEl);
 
-    // 'Your answer' indicator badge
-    if (isSubmitted && isChosen) {
-      row.createSpan({ text: "· Your answer", cls: "qblock-user-answer-badge" });
+    // Multi-select submitted: '· Your answer' badge
+    if (isSubmitted && q.type === "multi" && isChosen) {
+      const badge = row.createSpan({ cls: "qblock-user-answer-badge" });
+      badge.innerHTML = `· <strong>Your answer</strong>`;
+    }
+
+    // Multi-select submitted: Right chevron (∨ / ∧)
+    if (isSubmitted && q.type === "multi") {
+      const isExpanded = this.isOptionExpanded(q.id, choiceIdx);
+      const chevronBtn = row.createEl("button", {
+        cls: `qblock-chevron-btn ${isExpanded ? "is-expanded" : ""}`,
+        attr: { "aria-label": "Toggle description" }
+      });
+      chevronBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${isExpanded ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"}"/></svg>`;
+      chevronBtn.onclick = (e: MouseEvent) => {
+        e.stopPropagation();
+        this.toggleOptionExpanded(q.id, choiceIdx);
+        this.render();
+      };
+    }
+
+    // Feedback row for Single Choice when submitted:
+    // SS 1: Checkmark That's right!
+    // SS 2: Cross Not quite, or Checkmark Right answer
+    if (isSubmitted && q.type === "single") {
+      if (choice.isCorrect && isChosen) {
+        const fb = item.createDiv("qblock-option-feedback is-correct");
+        fb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span>That's right!</span>`;
+      } else if (!choice.isCorrect && isChosen) {
+        const fb = item.createDiv("qblock-option-feedback is-incorrect");
+        fb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg><span>Not quite</span>`;
+      } else if (choice.isCorrect && !isChosen) {
+        const fb = item.createDiv("qblock-option-feedback is-correct");
+        fb.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span>Right answer</span>`;
+      }
+    }
+
+    // Option Description (if it exists):
+    // For single-choice: always show when submitted
+    // For multi-choice: show when expanded
+    const shouldShowDesc = isSubmitted && choice.description && (q.type === "single" || this.isOptionExpanded(q.id, choiceIdx));
+    if (shouldShowDesc && choice.description) {
+      const descEl = item.createDiv("qblock-option-desc");
+      this.renderMarkdown(choice.description, descEl);
     }
   }
 
@@ -768,6 +878,7 @@ class QuizRenderer {
       this.responses.set(this.currentIndex, [choiceIdx]);
       if (this.settings.instantFeedback) {
         this.submittedQuestions.add(this.currentIndex);
+        this.isHintOpen = false;
       }
       this.render();
     }
@@ -779,7 +890,8 @@ class QuizRenderer {
     const right = controls.createDiv("qblock-controls-right");
 
     // Hint Button (Borderless, hover effect)
-    if (q.hint) {
+    // Hidden once an answer is submitted!
+    if (q.hint && !this.isCurrentSubmitted) {
       const hintBtn = left.createEl("button", { cls: "qblock-hint-btn" });
       hintBtn.innerHTML = `<span>Hint</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:${this.isHintOpen ? "rotate(180deg)" : "rotate(0)"};transition:transform 0.2s"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>`;
       hintBtn.onclick = () => {
@@ -821,6 +933,7 @@ class QuizRenderer {
     primaryBtn.onclick = () => {
       if (isSubmitMode) {
         this.submittedQuestions.add(this.currentIndex);
+        this.isHintOpen = false;
         this.render();
       } else if (isLast) {
         this.viewMode = "score";
@@ -931,6 +1044,7 @@ class QuizRenderer {
     retakeBtn.onclick = () => {
       this.responses.clear();
       this.submittedQuestions.clear();
+      this.expandedOptions.clear();
       this.currentIndex = 0;
       this.viewMode = "quiz";
       this.render();
@@ -944,6 +1058,7 @@ class QuizRenderer {
     shuffleBtn.onclick = () => {
       this.responses.clear();
       this.submittedQuestions.clear();
+      this.expandedOptions.clear();
       this.questions = this.shuffleArray([...this.quiz.questions]);
       this.currentIndex = 0;
       this.viewMode = "quiz";

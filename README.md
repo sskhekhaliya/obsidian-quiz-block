@@ -23,9 +23,10 @@ A modern, interactive quiz plugin for **[Obsidian](https://obsidian.md)** develo
   - Values (including multi-line triple-quoted strings containing code blocks or markdown) are highlighted in your theme's string/value color.
 - **📄 Multi-Line & Code Block Questions**:
   - Full multiline support (`white-space: pre-wrap`) for questions, choices, hints, and explanations—perfect for code snippets, paragraphs, and scenarios.
-- **💡 Hints & Explanations**:
-  - **Hint Drawer**: Borderless hover-activated hint button that opens the hint card below the controls.
-  - **Question Explanation**: Clean reasoning card displayed directly below the controls when answered.
+- **💡 Per-Option Explanations & Auto-Hiding Hints**:
+  - **Option Descriptions**: Attach specific explanations to each choice that expand upon answering to give precise, contextual feedback.
+  - **Dynamic Evaluation Feedback**: Displays clear `✓ That's right!`, `✕ Not quite`, and `✓ Right answer` status badges in single-choice questions, and `X/Y Correct, Z Incorrect` summary banners with accordion chevrons in multi-select questions.
+  - **Auto-Hiding Hint**: The hint button automatically closes and hides upon answer submission to keep your workspace clean.
 - **📊 Comprehensive Score Summary**:
   - Displays final score and percentage (`8/12 (67%)`).
   - Color-coded segmented progress bar (Got it, Missed it, Skipped).
@@ -59,22 +60,15 @@ title: "Solar System Quiz"
 questions:
   - question: "Which planet is famous for its prominent ring system?"
     hint: "It is the sixth planet from the Sun."
-    explanation: "Saturn has the most extensive and visible ring system in our Solar System."
     choices:
-      - "Jupiter"
-      - "Saturn"
-      - "Neptune"
-      - "Uranus"
-    answer: [B]
-
-  - question: "Which planet is known as the Red Planet?"
-    hint: "Named after the Roman god of war."
-    explanation: "Mars appears reddish due to iron oxide (rust) covering its surface."
-    choices:
-      - "Venus"
-      - "Mars"
-      - "Mercury"
-      - "Jupiter"
+      - text: "Jupiter"
+        description: "Jupiter has faint rings discovered in 1979, but they are not its prominent visual feature."
+      - text: "Saturn"
+        description: "Saturn has the most extensive and visible ring system in our Solar System."
+      - text: "Neptune"
+        description: "Neptune has faint, dark rings composed of organic compounds."
+      - text: "Uranus"
+        description: "Uranus has dark, narrow rings that are difficult to see from Earth."
     answer: [B]
 ```
 ````

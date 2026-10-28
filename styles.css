@@ -10,8 +10,10 @@
   --qb-accent-soft: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
   --qb-correct-bg: color-mix(in srgb, var(--color-green, #34a853) 14%, var(--background-primary));
   --qb-correct-text: var(--color-green, #137333);
-  --qb-incorrect-bg: color-mix(in srgb, var(--color-red, #ea4335) 14%, var(--background-primary));
+  --qb-correct-border: color-mix(in srgb, var(--color-green, #34a853) 40%, transparent);
+  --qb-incorrect-bg: color-mix(in srgb, var(--color-red, #ea4335) 12%, var(--background-primary));
   --qb-incorrect-text: var(--color-red, #c5221f);
+  --qb-incorrect-border: color-mix(in srgb, var(--color-red, #ea4335) 35%, transparent);
 
   background: var(--background-primary);
   border: 1px solid var(--qb-border);
@@ -96,56 +98,179 @@
 }
 
 .qblock-option {
-  align-items: center;
   background: var(--qb-surface);
-  border: none !important;
+  border: 1px solid transparent;
   border-radius: 14px;
   box-shadow: none !important;
   box-sizing: border-box;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
   outline: none !important;
   padding: 13px 16px;
   position: relative;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
   user-select: none;
 }
 
 .qblock-option:hover {
   background: var(--qb-surface-hover);
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
 }
 
 .qblock-option.is-selected {
   background: var(--qb-accent-soft) !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
+  border-color: transparent !important;
 }
 
 .qblock-option.is-selected:hover {
   background: color-mix(in srgb, var(--interactive-accent) 18%, transparent) !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
 }
 
-.qblock-option.is-correct,
-.qblock-option.is-correct:hover {
+/* Submitted state */
+.qblock-option.is-submitted-option {
+  cursor: default;
+}
+
+/* Multi-select submitted options with descriptions can be clicked to toggle */
+.qblock-option.is-submitted-option:has(.qblock-chevron-btn) {
+  cursor: pointer;
+}
+
+/* Single & Multi: Correct chosen (SS 1, SS 3, SS 4) */
+.qblock-option.is-correct-chosen {
   background: var(--qb-correct-bg) !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
+  border: 1px solid var(--qb-correct-border) !important;
 }
 
-.qblock-option.is-incorrect,
-.qblock-option.is-incorrect:hover {
+/* Single choice: Correct but not chosen (SS 2) */
+.qblock-option.is-correct-unchosen {
+  background: var(--qb-correct-bg) !important;
+  border: 1px solid var(--qb-correct-border) !important;
+}
+
+/* Multi choice: Correct but unchosen (SS 3, SS 4: prominent green outline with clean background) */
+.qblock-option.is-correct-unchosen-outline {
+  background: transparent !important;
+  border: 1.5px solid var(--color-green, #34a853) !important;
+}
+
+/* Single & Multi: Incorrect chosen (SS 2, SS 4) */
+.qblock-option.is-incorrect-chosen {
   background: var(--qb-incorrect-bg) !important;
+  border: 1px solid var(--qb-incorrect-border) !important;
+}
+
+/* Multi choice: Incorrect unchosen (SS 3) */
+.qblock-option.is-incorrect-unchosen {
+  background: color-mix(in srgb, var(--color-red, #ea4335) 4%, var(--qb-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--color-red, #ea4335) 20%, transparent) !important;
+}
+
+/* Single choice: Disabled neutral (SS 1, SS 2) */
+.qblock-option.is-disabled-neutral {
+  background: var(--qb-surface) !important;
+  border: 1px solid transparent !important;
+  opacity: 0.92;
+}
+
+/* Option feedback line (That's right!, Not quite, Right answer) */
+.qblock-option-feedback {
+  align-items: center;
+  display: flex;
+  font-size: 0.88em;
+  font-weight: 700;
+  gap: 6px;
+  margin-left: 30px;
+  margin-top: 7px;
+}
+
+.qblock-option-feedback.is-correct {
+  color: var(--color-green, #137333);
+}
+
+.qblock-option-feedback.is-incorrect {
+  color: var(--color-red, #c5221f);
+}
+
+.qblock-option-feedback svg {
+  flex-shrink: 0;
+}
+
+/* Option description */
+.qblock-option-desc {
+  color: var(--text-muted);
+  font-size: 0.88em;
+  line-height: 1.5;
+  margin-left: 30px;
+  margin-top: 6px;
+  user-select: text;
+  word-break: break-word;
+}
+
+.qblock-option.is-correct-chosen .qblock-option-desc,
+.qblock-option.is-correct-unchosen .qblock-option-desc,
+.qblock-option.is-correct-unchosen-outline .qblock-option-desc {
+  color: var(--text-normal);
+}
+
+.qblock-option-desc p {
+  display: block;
+  margin: 4px 0 !important;
+}
+
+.qblock-option-desc p:first-child {
+  margin-top: 0 !important;
+}
+
+.qblock-option-desc p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.qblock-option-desc pre {
+  margin: 6px 0;
+  max-width: 100%;
+}
+
+.qblock-option-desc code {
+  font-family: var(--font-monospace);
+}
+
+/* Chevron button for multi-select options */
+.qblock-chevron-btn {
+  align-items: center;
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  margin-left: auto;
   outline: none !important;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.qblock-chevron-btn:hover {
+  color: var(--text-normal);
+}
+
+/* Multi-select summary banner (SS 4) */
+.qblock-multi-summary {
+  align-items: center;
+  background: var(--background-secondary);
+  border: 1px solid var(--qb-border);
+  border-radius: 12px;
+  box-sizing: border-box;
+  color: var(--text-normal);
+  display: flex;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 18px;
+  padding: 12px 18px;
 }
 
 .qblock-option-row {
@@ -239,9 +364,13 @@
 .qblock-user-answer-badge {
   color: var(--text-muted);
   flex-shrink: 0;
-  font-size: 0.76em;
-  font-weight: 600;
+  font-size: 0.82em;
   margin-left: 6px;
+}
+
+.qblock-user-answer-badge strong {
+  color: var(--text-normal);
+  font-weight: 700;
 }
 
 .qblock-option.has-code .qblock-user-answer-badge {
