@@ -794,7 +794,7 @@ var QuizRenderer = class {
         } else if (!choice.isCorrect && isChosen) {
           optionCls += " is-incorrect-chosen";
         } else {
-          optionCls += " is-incorrect-unchosen";
+          optionCls += " is-incorrect-unchosen is-incorrect-unchosen-outline";
         }
       }
     }

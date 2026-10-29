@@ -161,10 +161,11 @@
   border: 1px solid var(--qb-incorrect-border) !important;
 }
 
-/* Multi choice: Incorrect unchosen (SS 3) */
-.qblock-option.is-incorrect-unchosen {
-  background: color-mix(in srgb, var(--color-red, #ea4335) 4%, var(--qb-surface)) !important;
-  border: 1px solid color-mix(in srgb, var(--color-red, #ea4335) 20%, transparent) !important;
+/* Multi choice: Incorrect unchosen (prominent red outline with clean background) */
+.qblock-option.is-incorrect-unchosen,
+.qblock-option.is-incorrect-unchosen-outline {
+  background: transparent !important;
+  border: 1.5px solid var(--color-red, #ea4335) !important;
 }
 
 /* Single choice: Disabled neutral (SS 1, SS 2) */
@@ -210,7 +211,10 @@
 
 .qblock-option.is-correct-chosen .qblock-option-desc,
 .qblock-option.is-correct-unchosen .qblock-option-desc,
-.qblock-option.is-correct-unchosen-outline .qblock-option-desc {
+.qblock-option.is-correct-unchosen-outline .qblock-option-desc,
+.qblock-option.is-incorrect-chosen .qblock-option-desc,
+.qblock-option.is-incorrect-unchosen .qblock-option-desc,
+.qblock-option.is-incorrect-unchosen-outline .qblock-option-desc {
   color: var(--text-normal);
 }
 
